@@ -1,0 +1,14 @@
+{
+  "mode": "outbound_mission",
+  "payload": {
+    "channel_id": "1505129251232546858",
+    "thread_id": "123456789",
+    "content": "<@1505112142792097872>\nMISSION-ID: X\nTASK-ID: Y",
+    "allowed_mentions": {
+      "users": [
+        "1505112142792097872"
+      ]
+    }
+  },
+  "expected": "KO"
+}

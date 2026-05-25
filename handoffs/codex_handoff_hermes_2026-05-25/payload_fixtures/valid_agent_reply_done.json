@@ -1,0 +1,7 @@
+{
+  "mode": "agent_reply",
+  "payload": {
+    "content": "TASK-ID: TEST-ARIANE-ROUTING-001\nStatut final: DONE\nRésultat: DONE ARIANE ROUTING"
+  },
+  "expected": "OK"
+}
