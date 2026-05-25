@@ -53,3 +53,44 @@ canonical file was at `/opt/data/workspace/discord_inventory.md`.
 The gateway patch is currently applied to running container filesystems. It will
 survive normal `docker restart`, but may be lost if containers are recreated from
 the image without rebuilding or mounting the patched source.
+
+## Follow-Up: Send Message Tool Bypass
+
+After the first correction, Ariane repeated the same textual mention through a
+different path:
+
+```json
+{"target":"discord:#hermes-orchestrateur","message":"@Hermes ..."}
+```
+
+Evidence was found in Ariane's session log:
+`/opt/data/profiles/hermes-ariane/sessions/20260525_162437_f878150c.jsonl`.
+
+The root cause was that `tools/send_message_tool.py` contains a direct Discord
+REST sender. That path posts Discord JSON payloads directly and did not pass
+through the patched gateway adapter. The first patch therefore protected normal
+adapter sends, but not the `send_message` tool call used by Ariane.
+
+Additional corrections applied:
+
+- Added textual mention rejection at the start of `_handle_send()` when
+  `target` is Discord.
+- Added a second guard inside `_send_discord()` before any REST request.
+- Replaced raw `{"content": message}` Discord payloads with explicit
+  `allowed_mentions` payloads:
+  `parse=[]`, scoped `users=[...]`, `roles=[]`, `replied_user=false`.
+- Added `send_message` mode to `hermes_discord_payload_lint.py`.
+- Added a healthcheck fixture for the exact bypass class.
+- Deployed `send_message_tool.py` to Ariane, Vulcain, Argus, Atlas,
+  Hermes principal, and dashboard containers.
+- Restarted Ariane, Vulcain, Argus, Atlas, and Hermes principal.
+
+Follow-up verification:
+
+- Direct bad tool call in Ariane:
+  `send_message(target="discord:#hermes-orchestrateur", message="@Hermes ...")`
+  returns `FORBIDDEN_TEXT_MENTION` before config resolution or send.
+- Same bad tool call returns `FORBIDDEN_TEXT_MENTION` in Vulcain, Argus, and
+  Atlas.
+- Healthcheck now reports `PASS=29 FAIL=0 WARN=0`.
+- No Discord message was sent during these verification tests.
