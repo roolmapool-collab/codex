@@ -1,0 +1,169 @@
+{
+  "generated_at": "2026-06-07T15:05:14.889871+00:00",
+  "scope": "Model Resource Live Counters Probe",
+  "version": "1.0",
+  "mode": "LIVE",
+  "resources": {
+    "minimax": {
+      "status": "YELLOW",
+      "credentials": {
+        "key_present": true,
+        "key_source": "ENV_FILE",
+        "key_type": "token_plan",
+        "secret_exposed": false,
+        "runtime_note": "Key found in /opt/data/.env but not loaded in environment. Probe requires runtime key or reload."
+      },
+      "quota": {
+        "quota_5h": "MANUAL_REQUIRED",
+        "quota_weekly": "MANUAL_REQUIRED",
+        "quota_monthly": "MANUAL_REQUIRED"
+      },
+      "probe_freshness": "2026-06-07T15:05:14.621602+00:00",
+      "decision": "STOP_AND_ASK",
+      "notes": "MINIMAX_API_KEY exists in .env but not in runtime environment. St\u00e9phane must provide counter values or reload key."
+    },
+    "codex": {
+      "status": "UNKNOWN",
+      "credentials": {
+        "key_present": false,
+        "key_source": "NOT_FOUND",
+        "key_type": "oauth",
+        "secret_exposed": false
+      },
+      "oauth": "NOT_CONFIGURED",
+      "usage_remaining": "MANUAL_REQUIRED",
+      "probe_freshness": "2026-06-07T15:05:14.621720+00:00",
+      "decision": "STOP_AND_ASK",
+      "notes": "Codex token not found in environment or .env files. OAuth status = NOT_CONFIGURED."
+    },
+    "mimo": {
+      "status": "CANARY_LEVEL_1_PASS",
+      "credentials": {
+        "key_present": true,
+        "key_source": "ENV_FILE",
+        "key_type": "token_plan",
+        "secret_exposed": false,
+        "runtime_note": "Key found in /opt/data/.env but not loaded in runtime. Canary L1 PASS indicates key is valid in Hermes context."
+      },
+      "canary": "CANARY_LEVEL_1_PASS",
+      "canary_level": 1,
+      "monthly_quota": "MANUAL_REQUIRED",
+      "usage_percent": "MANUAL_REQUIRED",
+      "days_left_in_month": 23,
+      "probe_freshness": "2026-06-07T15:05:14.621874+00:00",
+      "decision": "NO_RUNTIME_USE",
+      "notes": "XIAOMI_API_KEY exists in .env but not in runtime. Canary L1 PASS from P35 confirms key validity in Hermes context."
+    },
+    "openrouter": {
+      "status": "GREEN_FOR_DRAFT",
+      "credentials": {
+        "key_present": true,
+        "key_source": "ENV_FILE",
+        "key_type": "subscription",
+        "secret_exposed": false
+      },
+      "authoritative": false,
+      "model_available": true,
+      "models_available": [
+        "openrouter/owl-alpha"
+      ],
+      "rate_limit_ok": true,
+      "recent_rate_limits": 0,
+      "probe_freshness": "2026-06-07T15:05:14.888730+00:00",
+      "decision": "DRAFT_ONLY",
+      "notes": "OpenRouter free \u2014 non authoritative. Only for drafts/non-critical."
+    }
+  },
+  "decision_framework": {
+    "step1_classify": "Task Type, Risk, Output Format, Expected Duration, Technical Action",
+    "step2_probe": "If status fresh (<1h) \u2192 use it. Else \u2192 run probes. Manual counters \u2192 ask St\u00e9phane.",
+    "step3_decide": "M2.7 if quota OK + relevant. M3 if long context reasoning. Codex if tech. MiMo if canary PASS + premium. OpenRouter if non-critical + draft.",
+    "step4_report": "Format: Task, Risk, Output, Selected resource, Why, Why not others, Quota impact, Fallback, Human validation."
+  },
+  "counters_summary": {
+    "automatic": [
+      "MiniMax: /v1/models (read-only), latency, errors 429/529",
+      "Codex OAuth: OAuth status (Nous probe)",
+      "OpenRouter free: model availability, rate limits",
+      "MiMo: days_left_in_month (automatic calculation)"
+    ],
+    "manual_required": [
+      "MiniMax: quota 5h, weekly, monthly \u2192 St\u00e9phane dashboard (endpoint_quota_api: NOT_FOUND)",
+      "Codex: usage remaining, session limits \u2192 Nous dashboard (auth.json not inspectable)",
+      "MiMo: monthly quota, usage % \u2192 token-plan dashboard (no API endpoint found)"
+    ]
+  },
+  "credential_status": {
+    "minimax": {
+      "key_present": "KEY_PRESENT_ENV_FILE",
+      "runtime_loaded": false,
+      "quota_counters": "MANUAL_REQUIRED (no endpoint found)",
+      "reason": "Key in /opt/data/.env but not loaded in runtime. St\u00e9phane must provide quota values."
+    },
+    "codex": {
+      "key_present": "KEY_NOT_VISIBLE_IN_ENV",
+      "runtime_loaded": false,
+      "oauth_status": "OAUTH_STATUS_UNKNOWN (auth.json forbidden to read)",
+      "usage_remaining": "MANUAL_REQUIRED",
+      "reason": "Token not in runtime environment. OAuth status unknown (auth.json not inspectable)."
+    },
+    "mimo": {
+      "key_present": "KEY_PRESENT_ENV_FILE",
+      "runtime_loaded": false,
+      "canary": "CANARY_LEVEL_1_PASS",
+      "quota_counters": "MANUAL_REQUIRED (no endpoint found)",
+      "days_left_in_month": "AUTOMATIC",
+      "reason": "Key in /opt/data/.env. Canary L1 PASS from P35 confirms key validity in Hermes context."
+    },
+    "openrouter": {
+      "key_present": "KEY_PRESENT_ENV",
+      "runtime_loaded": true,
+      "status": "GREEN_FOR_DRAFT",
+      "reason": "OpenRouter free accessible. Non authoritative \u2014 only for drafts/non-critical."
+    }
+  },
+  "routing_rules": {
+    "critical_prod_secrets_release": {
+      "models": [
+        "MiniMax-M2.7"
+      ],
+      "condition": "if counter unknown/red \u2192 STOP_AND_ASK",
+      "never": [
+        "OpenRouter",
+        "MiMo (unless ACTIVE_LIMITED+)"
+      ]
+    },
+    "long_context_non_critical": {
+      "models": [
+        "M3",
+        "MiMo (if L2+)",
+        "M2.7"
+      ],
+      "condition": "MiMo only if monthly quota to valorize + canary ok"
+    },
+    "technical_action": {
+      "models": [
+        "Codex",
+        "MiMo (after canary coding)",
+        "M2.7"
+      ],
+      "never": [
+        "OpenRouter (prod code)"
+      ]
+    },
+    "draft_exploration": {
+      "models": [
+        "OpenRouter free (if GREEN_FOR_DRAFT)",
+        "MiMo (if quota to valorize + canary ok)"
+      ],
+      "never": [
+        "M2.7 (preserve for critical)"
+      ]
+    }
+  },
+  "human_counter_request": {
+    "trigger": "When automatic probe returns MANUAL_REQUIRED or UNKNOWN for a critical resource",
+    "request_format": "J'ai besoin des compteurs actuels : MiniMax: usage 5h / weekly ? Codex: usage restant ? MiMo: usage mensuel % ? Sinon je route en mode conservateur.",
+    "fallback": "Mode conservateur \u2014 use M2.7 only, preserve others"
+  }
+}
